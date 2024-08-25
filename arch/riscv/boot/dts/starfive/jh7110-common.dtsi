@@ -62,6 +62,30 @@
 			};
 		};
 	};
+
+	sound1: snd-card1 {
+		compatible = "simple-audio-card";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		simple-audio-card,name = "StarFive-HDMI-Sound-Card";
+		simple-audio-card,dai-link@0 {
+			reg = <0>;
+			format = "i2s";
+			bitclock-master = <&sndi2s0>;
+			frame-master = <&sndi2s0>;
+			mclk-fs = <256>;
+			status = "okay";
+
+			sndi2s0: cpu {
+				sound-dai = <&i2stx0>;
+			};
+
+			codec {
+				sound-dai = <&hdmi>;
+			};
+		};
+	};	
 };
 
 &cpus {
@@ -189,6 +213,28 @@
 	};
 };
 
+&dc8200 {
+	status = "okay";
+
+	dc_out: port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		dc_out_dpi0: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&hdmi_input0>;
+		};
+		dc_out_dpi1: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&hdmi_in_lcdc>;
+		};
+
+		// dc_out_dpi2: endpoint@2 {
+		// 	reg = <2>;
+		// 	remote-endpoint = <&mipi_in>;
+		// };
+	};
+};
+
 &i2c0 {
 	clock-frequency = <100000>;
 	i2c-sda-hold-time-ns = <300>;
@@ -225,6 +271,21 @@
 		#interrupt-cells = <1>;
 
 		regulators {
+			hdmi_0p9: ALDO5 {
+				regulator-boot-on;
+				regulator-compatible = "aldo5";
+				regulator-name = "hdmi_0p9";
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <900000>;
+			};
+
+			hdmi_1p8: ALDO3 {
+				regulator-boot-on;
+				regulator-compatible = "aldo3";
+				regulator-name = "hdmi_1p8";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+			};
 			vcc_3v3: dcdc1 {
 				regulator-boot-on;
 				regulator-always-on;
@@ -314,6 +375,8 @@
 	status = "okay";
 };
 
+
+
 &qspi {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -377,6 +440,40 @@
 			bias-disable; /* external pull-up */
 			input-enable;
 			input-schmitt-enable;
+		};
+	};
+
+	hdmi_pins: hdmi-0 {
+		hdmi-cec-pins {
+			pinmux = <GPIOMUX(14, GPOUT_SYS_HDMI_CEC_SDA,
+					     GPOEN_SYS_HDMI_CEC_SDA,
+					     GPI_SYS_HDMI_CEC_SDA)>;
+			input-enable;
+			bias-pull-up;
+		};
+
+		hdmi-hpd-pins {
+			pinmux = <GPIOMUX(15, GPOUT_HIGH,
+					     GPOEN_ENABLE,
+					     GPI_SYS_HDMI_HPD)>;
+			input-enable;
+			bias-disable; /* external pull-up */
+		};
+
+		hdmi-scl-pins {
+			pinmux = <GPIOMUX(0, GPOUT_SYS_HDMI_DDC_SCL,
+					     GPOEN_SYS_HDMI_DDC_SCL,
+					     GPI_SYS_HDMI_DDC_SCL)>;
+			input-enable;
+			bias-pull-up;
+		};
+
+		hdmi-sda-pins {
+			pinmux = <GPIOMUX(1, GPOUT_SYS_HDMI_DDC_SDA,
+					     GPOEN_SYS_HDMI_DDC_SDA,
+					     GPI_SYS_HDMI_DDC_SDA)>;
+			input-enable;
+			bias-pull-up;
 		};
 	};
 
@@ -655,4 +752,44 @@
 
 &U74_4 {
 	cpu-supply = <&vdd_cpu>;
+};
+
+&hdmi {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&hdmi_pins>;
+	hpd-gpio = <&sysgpio 15 GPIO_ACTIVE_HIGH>;
+	hdmi_0p9-supply = <&hdmi_0p9>;
+	hdmi_1p8-supply = <&hdmi_1p8>;
+
+	hdmi_in: port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		hdmi_in_lcdc: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dc_out_dpi1>;
+		};
+	};
+};
+
+&dc8200 {
+	status = "okay";
+
+	dc_out: port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		dc_out_dpi0: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&hdmi_input0>;
+		};
+		dc_out_dpi1: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&hdmi_in_lcdc>;
+		};
+
+		// dc_out_dpi2: endpoint@2 {
+		// 	reg = <2>;
+		// 	remote-endpoint = <&mipi_in>;
+		// };
+	};
 };
